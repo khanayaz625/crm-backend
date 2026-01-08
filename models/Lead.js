@@ -4,12 +4,13 @@ const leadSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true },
     phone: { type: String },
-    source: { type: String, default: 'Landing Page' }, // e.g., 'Landing Page', 'Manual'
+    source: { type: String, default: 'Landing Page' },
     status: { type: String, enum: ['New', 'Contacted', 'Qualified', 'Lost', 'Won'], default: 'New' },
     notes: { type: String },
     courseName: { type: String },
     collegeName: { type: String },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     createdAt: { type: Date, default: Date.now }
 });
 
