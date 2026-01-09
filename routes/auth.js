@@ -45,7 +45,7 @@ router.post('/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        const token = jwt.sign({ id: user._id, role: user.role, isDemo: user.isDemo }, process.env.JWT_SECRET, { expiresIn: '1d' });
         const userObj = user.toObject();
         delete userObj.password;
         res.json({ token, user: userObj });
@@ -68,8 +68,15 @@ router.put('/profile', verifyToken, upload.single('avatar'), async (req, res) =>
         }
 
         if (req.file) {
-            // Cloudinary automatically provides the secure URL
             updateData.avatar = req.file.path;
+        }
+
+        // Prevent demo users from changing sensitive fields
+        if (req.user.isDemo) {
+            delete updateData.email;
+            delete updateData.password;
+            // Optionally allow name/avatar, but user said "don't change any of my data"
+            // Let's just allow name for some personalization if they want, but email/password must stay.
         }
 
         const user = await User.findByIdAndUpdate(req.user.id, updateData, { new: true }).select('-password');
@@ -83,7 +90,8 @@ router.put('/profile', verifyToken, upload.single('avatar'), async (req, res) =>
 // Get All Users (Admin Only)
 router.get('/users', verifyAdmin, async (req, res) => {
     try {
-        const users = await User.find().select('-password').sort({ createdAt: -1 });
+        const query = { isDemo: req.user.isDemo || false };
+        const users = await User.find(query).select('-password').sort({ createdAt: -1 });
         res.json(users);
     } catch (error) {
         console.error('Fetch Users Error:', error);
@@ -95,7 +103,12 @@ router.get('/users', verifyAdmin, async (req, res) => {
 router.patch('/users/:id/role', verifyAdmin, async (req, res) => {
     try {
         const { role } = req.body;
-        const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select('-password');
+        const user = await User.findOneAndUpdate(
+            { _id: req.params.id, isDemo: req.user.isDemo || false },
+            { role },
+            { new: true }
+        ).select('-password');
+        if (!user) return res.status(404).json({ message: 'User not found or access denied' });
         res.json(user);
     } catch (error) {
         console.error('Update Role Error:', error);
@@ -108,7 +121,11 @@ router.patch('/users/:id/password', verifyAdmin, async (req, res) => {
     try {
         const { password } = req.body;
         const hashedPassword = await bcrypt.hash(password, 10);
-        await User.findByIdAndUpdate(req.params.id, { password: hashedPassword });
+        const user = await User.findOneAndUpdate(
+            { _id: req.params.id, isDemo: req.user.isDemo || false },
+            { password: hashedPassword }
+        );
+        if (!user) return res.status(404).json({ message: 'User not found or access denied' });
         res.json({ message: 'Password updated successfully' });
     } catch (error) {
         console.error('Update Password Error:', error);
@@ -119,7 +136,8 @@ router.patch('/users/:id/password', verifyAdmin, async (req, res) => {
 // Delete User (Admin Only)
 router.delete('/users/:id', verifyAdmin, async (req, res) => {
     try {
-        await User.findByIdAndDelete(req.params.id);
+        const user = await User.findOneAndDelete({ _id: req.params.id, isDemo: req.user.isDemo || false });
+        if (!user) return res.status(404).json({ message: 'User not found or access denied' });
         res.json({ message: 'User deleted successfully' });
     } catch (error) {
         console.error('Delete User Error:', error);

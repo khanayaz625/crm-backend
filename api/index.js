@@ -17,6 +17,8 @@ app.use("/uploads", express.static("uploads"));
 app.use(cors({
     origin: [
         "http://localhost:5173",
+        "http://localhost:3000",
+        "https://clientdesk.vercel.app",
         "https://my-crm-ten-tan.vercel.app",
         "https://my-b33cf45nv-ayaz-khans-projects-ebbf8d73.vercel.app",
         "https://my-awei378g0-ayaz-khans-projects-ebbf8d73.vercel.app",

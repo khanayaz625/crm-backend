@@ -11,6 +11,7 @@ const leadSchema = new mongoose.Schema({
     collegeName: { type: String, required: true },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    isDemo: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now }
 });
 

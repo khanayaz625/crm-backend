@@ -8,14 +8,14 @@ const router = express.Router();
 // Get All Leads (Filtered by role)
 router.get('/', verifyToken, async (req, res) => {
     try {
-        let query = {};
+        let query = { isDemo: req.user.isDemo || false };
         if (req.user.role !== 'admin') {
             query.assignedTo = req.user.id;
         }
 
         const leads = await Lead.find(query)
             .populate('assignedTo', 'name email')
-            .populate('addedBy', 'name') // Populate addedBy
+            .populate('addedBy', 'name')
             .sort({ createdAt: -1 });
         res.json(leads);
     } catch (error) {
@@ -40,22 +40,22 @@ router.post('/', async (req, res) => {
 
         const leadData = { name, email, phone, source, courseName, collegeName, notes, status: 'New' };
 
-        // Check for Auth Token to determine addedBy/Auto-assign
+        // Check for Auth Token to determine addedBy/Auto-assign/isDemo
         const token = req.header('Authorization')?.replace('Bearer ', '');
         if (token) {
             try {
                 const verified = jwt.verify(token, process.env.JWT_SECRET);
                 leadData.addedBy = verified.id;
+                leadData.isDemo = verified.isDemo || false;
 
                 // Logic: If added by employee, auto-assign to them. Admin can assign to anyone.
                 if (verified.role === 'employee') {
                     leadData.assignedTo = verified.id;
                 } else if (assignedTo) {
-                    leadData.assignedTo = assignedTo; // Admin assigning during creation
+                    leadData.assignedTo = assignedTo;
                 }
             } catch (err) {
-                // Token invalid but continuing as public request is risky if intended to be auth.
-                // But for flexibility we let it slide as anonymous lead.
+                // Token invalid
             }
         }
 
@@ -71,7 +71,11 @@ router.post('/', async (req, res) => {
 router.patch('/:id/status', verifyToken, async (req, res) => {
     try {
         const { status } = req.body;
-        const lead = await Lead.findByIdAndUpdate(req.params.id, { status }, { new: true });
+        const lead = await Lead.findOne({ _id: req.params.id, isDemo: req.user.isDemo || false });
+        if (!lead) return res.status(404).json({ message: 'Lead not found or access denied' });
+
+        lead.status = status;
+        await lead.save();
         res.json(lead);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
@@ -113,7 +117,7 @@ router.post('/assign', verifyAdmin, async (req, res) => {
         const updateValue = userId === '' || userId === null ? null : userId;
 
         await Lead.updateMany(
-            { _id: { $in: leadIds } },
+            { _id: { $in: leadIds }, isDemo: req.user.isDemo || false },
             { $set: { assignedTo: updateValue } }
         );
 
@@ -128,7 +132,12 @@ router.post('/assign', verifyAdmin, async (req, res) => {
 router.put('/:id', verifyToken, async (req, res) => {
     try {
         const { name, email, phone, notes, courseName, collegeName } = req.body;
-        const lead = await Lead.findByIdAndUpdate(req.params.id, { name, email, phone, notes, courseName, collegeName }, { new: true });
+        const lead = await Lead.findOneAndUpdate(
+            { _id: req.params.id, isDemo: req.user.isDemo || false },
+            { name, email, phone, notes, courseName, collegeName },
+            { new: true }
+        );
+        if (!lead) return res.status(404).json({ message: 'Lead not found or access denied' });
         res.json(lead);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
@@ -138,7 +147,8 @@ router.put('/:id', verifyToken, async (req, res) => {
 // Delete Lead
 router.delete('/:id', verifyToken, async (req, res) => {
     try {
-        await Lead.findByIdAndDelete(req.params.id);
+        const lead = await Lead.findOneAndDelete({ _id: req.params.id, isDemo: req.user.isDemo || false });
+        if (!lead) return res.status(404).json({ message: 'Lead not found or access denied' });
         res.json({ message: 'Lead deleted' });
     } catch (error) {
         res.status(500).json({ message: 'Server error' });

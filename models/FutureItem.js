@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const FutureItemSchema = new mongoose.Schema({
     title: { type: String, required: true },
     description: { type: String },
+    isDemo: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now }
 });
 
