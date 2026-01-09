@@ -16,20 +16,7 @@ app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
 app.use(cors({
-    origin: function (origin, callback) {
-        const allowedOrigins = [
-            "http://localhost:5173",
-            "http://localhost:3000",
-            "https://clientdesk.vercel.app",
-            "https://my-crm-ten-tan.vercel.app"
-        ];
-        if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
-            callback(null, true);
-        } else {
-            console.warn(`CORS blocked for origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: true,
     credentials: true
 }));
 
