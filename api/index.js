@@ -7,6 +7,7 @@ import User from "../models/User.js";
 // Routes
 import authRoutes from "../routes/auth.js";
 import leadRoutes from "../routes/leads.js";
+import futureItemRoutes from "../routes/futureItems.js";
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.get("/setup-admin", async (req, res) => {
 /* ---------- API Routes ---------- */
 app.use("/api/auth", authRoutes);
 app.use("/api/leads", leadRoutes);
+app.use("/api/future", futureItemRoutes);
 
 /* ---------- MongoDB Connection ---------- */
 mongoose.connect(process.env.MONGODB_URI)
