@@ -65,16 +65,22 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-    origin: [
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "https://clientdesk.vercel.app",
-        "https://my-crm-ten-tan.vercel.app",
-        "https://my-b33cf45nv-ayaz-khans-projects-ebbf8d73.vercel.app",
-        "https://my-awei378g0-ayaz-khans-projects-ebbf8d73.vercel.app",
-        "https://my-6g1kd70v-ayaz-khans-projects-ebbf8d73.vercel.app",
-        "https://crm-backend-m1f3.onrender.com"
-    ],
+    origin: function (origin, callback) {
+        const allowedOrigins = [
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "https://clientdesk.vercel.app",
+            "https://my-crm-ten-tan.vercel.app"
+        ];
+        // Allow requests with no origin (like mobile apps or curl) 
+        // or if origin is in the list or ends with .vercel.app
+        if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
+            callback(null, true);
+        } else {
+            console.warn(`CORS blocked for origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 app.use(express.json());
