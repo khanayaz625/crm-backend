@@ -63,24 +63,14 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware (Resilient Pattern-based CORS)
+// Middleware (Resilient Simplified CORS)
 app.use(cors({
-    origin: (origin, callback) => {
-        const allowedPatterns = [
-            /^https?:\/\/localhost:\d+$/,
-            /\.vercel\.app$/,
-            /^https:\/\/clientdesk\.vercel\.app$/
-        ];
-        if (!origin || allowedPatterns.some(pattern => pattern.test(origin))) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
+    origin: true,
+    credentials: true
 }));
+
+// Global preflight handler
+app.options('*', cors());
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
